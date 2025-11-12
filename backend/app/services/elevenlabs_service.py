@@ -1,13 +1,11 @@
-from elevenlabs import generate, stream, Voice, VoiceSettings
-from elevenlabs.client import ElevenLabs
+from elevenlabs import generate
 from app.core.config import settings
-import io
 from typing import Optional
 
 
 class ElevenLabsService:
     def __init__(self):
-        self.client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
+        self.api_key = settings.ELEVENLABS_API_KEY
         self.default_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 
     async def text_to_speech(
@@ -30,7 +28,7 @@ class ElevenLabsService:
             text=text,
             voice=voice_id,
             model=model,
-            api_key=settings.ELEVENLABS_API_KEY
+            api_key=self.api_key
         )
 
         # Convert generator to bytes
@@ -55,24 +53,22 @@ class ElevenLabsService:
             voice=voice_id,
             model=model,
             stream=True,
-            api_key=settings.ELEVENLABS_API_KEY
+            api_key=self.api_key
         )
 
         return audio_stream
 
     async def get_voices(self):
         """Get available voices from ElevenLabs"""
-        try:
-            voices = self.client.voices.get_all()
-            return voices
-        except Exception as e:
-            # Return default voices if API call fails
-            return {
-                "voices": [
-                    {"voice_id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel"},
-                    {"voice_id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi"},
-                ]
-            }
+        # Return default voices
+        return {
+            "voices": [
+                {"voice_id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel"},
+                {"voice_id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi"},
+                {"voice_id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella"},
+                {"voice_id": "ErXwobaYiN019PkySvjV", "name": "Antoni"},
+            ]
+        }
 
 
 # Singleton instance
