@@ -96,8 +96,8 @@ async def register(
     )
 
     # Create tokens
-    access_token = create_access_token({"sub": new_user.id})
-    refresh_token = create_refresh_token({"sub": new_user.id})
+    access_token = create_access_token({"sub": str(new_user.id)})
+    refresh_token = create_refresh_token({"sub": str(new_user.id)})
 
     return TokenResponse(
         access_token=access_token,
@@ -131,8 +131,8 @@ async def login(
     )
 
     # Create tokens
-    access_token = create_access_token({"sub": user.id})
-    refresh_token = create_refresh_token({"sub": user.id})
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
         access_token=access_token,
@@ -166,8 +166,8 @@ async def refresh_token(
         )
 
     # Create new tokens
-    access_token = create_access_token({"sub": user.id})
-    new_refresh_token = create_refresh_token({"sub": user.id})
+    access_token = create_access_token({"sub": str(user.id)})
+    new_refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
         access_token=access_token,
