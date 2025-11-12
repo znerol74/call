@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cal_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-caluser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-caldb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - cal_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cal_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cal_network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cal_backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-caluser}:${POSTGRES_PASSWORD:-calpassword}@postgres:5432/${POSTGRES_DB:-caldb}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-90}
+      ANONYMIZATION_AFTER_DAYS: ${ANONYMIZATION_AFTER_DAYS:-180}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cal_network
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cal_worker
+    command: python -m app.worker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-caluser}:${POSTGRES_PASSWORD:-calpassword}@postgres:5432/${POSTGRES_DB:-caldb}
+      REDIS_URL: redis://redis:6379
+      DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-90}
+      ANONYMIZATION_AFTER_DAYS: ${ANONYMIZATION_AFTER_DAYS:-180}
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cal_network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cal_frontend
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000}
+      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:8000}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - cal_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  cal_network:
+    driver: bridge
